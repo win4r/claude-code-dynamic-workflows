@@ -162,6 +162,10 @@ const CASES = {
     { name: 'with-brief', argsVal: 'migrate all call sites from requests to httpx', budgetTotal: null },
     { name: 'no-args(edge)', argsVal: '', budgetTotal: null },
   ],
+  'codex-review.js': [
+    { name: 'commit', argsVal: { repo: '/tmp/repo', commit: 'abc1234' }, budgetTotal: null },
+    { name: 'base', argsVal: { repo: '/tmp/repo', base: 'main' }, budgetTotal: null },
+  ],
 }
 
 ;(async () => {

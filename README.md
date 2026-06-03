@@ -54,6 +54,7 @@ Invoke a saved workflow by asking Claude in plain language — **`run the <name>
 | [`scaled-bug-hunt`](#scaled-bug-hunt) | `+500k run the scaled-bug-hunt workflow` | a focus area (optional) |
 | [`judge-panel-design`](#judge-panel-design) | `run the judge-panel-design workflow with "..."` | the design brief (**required**) |
 | [`parallel-migrate`](#parallel-migrate) | `run the parallel-migrate workflow with "..."` | the migration brief (**required**) |
+| [`codex-review`](#codex-review) | `run the codex-review workflow on <commit> in <repo>` | `{ repo, commit }` or `{ repo, base }` (**required**) |
 
 ### review-diff
 **Pattern: find → adversarially verify → synthesize.** Reviews the current diff across four dimensions (correctness, security, performance, tests) in parallel; every finding is then handed to an *independent* agent told to **refute** it, and only findings that survive are reported. Runs as a `pipeline` so each dimension's findings start verifying the moment that dimension finishes.
@@ -94,6 +95,18 @@ run the judge-panel-design workflow with "design a token-bucket rate limiter for
 ```
 run the parallel-migrate workflow with "migrate all call sites from `requests` to `httpx`"
 ```
+
+### codex-review
+**Pattern: cross-model review.** Claude reviews a change with its own lenses while, in parallel, a second agent **shells out to the [Codex CLI](https://github.com/openai/codex)** (`codex review`) for an independent pass from a different model family — catching blind spots a single model shares with itself. Every finding from either model is then adversarially verified before it's reported. The verifier is **target-aware**: it inspects the code *as of the reviewed ref* (`git show <ref>:<file>`), not the working tree, so reviewing an unchecked-out commit/branch doesn't produce false negatives.
+
+`args` is an **object** (the change to review must be explicit):
+
+```
+run the codex-review workflow   with args { "repo": "/abs/path/to/repo", "commit": "<sha>" }
+run the codex-review workflow   with args { "repo": "/abs/path/to/repo", "base": "main" }
+```
+
+> **Requires** the [Codex CLI](https://github.com/openai/codex) installed and authenticated (`codex login`, or `OPENAI_API_KEY` for headless). The Codex agent runs `codex review` non-interactively. Note: the workflow `budget` counts **Claude** output tokens only — Codex/OpenAI spend is tracked separately by Codex.
 
 Each file has a header comment documenting its `args` and **model strategy** — by default, finders/designers inherit your session model while high-volume verifiers/judges run on a smaller model to cut cost. Edit the `model:` options to taste (e.g. all `opus` for a high-stakes audit, all `haiku` for a cheap sweep).
 
