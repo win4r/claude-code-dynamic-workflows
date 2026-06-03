@@ -55,6 +55,7 @@ Invoke a saved workflow by asking Claude in plain language — **`run the <name>
 | [`judge-panel-design`](#judge-panel-design) | `run the judge-panel-design workflow with "..."` | the design brief (**required**) |
 | [`parallel-migrate`](#parallel-migrate) | `run the parallel-migrate workflow with "..."` | the migration brief (**required**) |
 | [`codex-review`](#codex-review) | `run the codex-review workflow on <commit> in <repo>` | `{ repo, commit }` or `{ repo, base }` (**required**) |
+| [`codegraph-explore`](#codegraph-explore) | `run the codegraph-explore workflow` | `{ repo, questions[] }` (**required**) |
 
 ### review-diff
 **Pattern: find → adversarially verify → synthesize.** Reviews the current diff across four dimensions (correctness, security, performance, tests) in parallel; every finding is then handed to an *independent* agent told to **refute** it, and only findings that survive are reported. Runs as a `pipeline` so each dimension's findings start verifying the moment that dimension finishes.
@@ -107,6 +108,21 @@ run the codex-review workflow   with args { "repo": "/abs/path/to/repo", "base":
 ```
 
 > **Requires** the [Codex CLI](https://github.com/openai/codex) installed and authenticated (`codex login`, or `OPENAI_API_KEY` for headless). The Codex agent runs `codex review` non-interactively. Note: the workflow `budget` counts **Claude** output tokens only — Codex/OpenAI spend is tracked separately by Codex.
+
+### codegraph-explore
+**Pattern: graph-powered exploration via MCP.** Demonstrates a Dynamic Workflow calling an **MCP server** rather than a CLI. Fans out one agent per question; each answers by querying the [CodeGraph](https://github.com/colbymchenry/codegraph) MCP tools (`codegraph_explore`, `codegraph_search`, `codegraph_callers`, …) against a pre-indexed code graph **instead of grepping** — fewer tokens, fewer tool calls — then a synthesis pass merges the answers. It **self-reports** `mcpReachable: false` rather than silently falling back to file scanning.
+
+```
+run the codegraph-explore workflow   with args { "repo": "/abs/path", "questions": ["How does the CLI dispatch subcommands?", "..."] }
+```
+
+> **Requires** [CodeGraph](https://github.com/colbymchenry/codegraph) installed, the repo indexed, and its MCP server connected:
+> ```bash
+> npm i -g @colbymchenry/codegraph
+> codegraph install --target claude        # wire the MCP server into Claude Code
+> cd /abs/path && codegraph init -i         # build the local .codegraph/ index
+> ```
+> **Then restart Claude Code *from the indexed repo*** (`cd /abs/path && claude`) — MCP servers load at **session startup**, and CodeGraph resolves the project from the client's rootUri. Workflow subagents reach session-connected MCP tools automatically; a server wired *mid-session* won't be visible until you restart.
 
 Each file has a header comment documenting its `args` and **model strategy** — by default, finders/designers inherit your session model while high-volume verifiers/judges run on a smaller model to cut cost. Edit the `model:` options to taste (e.g. all `opus` for a high-stakes audit, all `haiku` for a cheap sweep).
 

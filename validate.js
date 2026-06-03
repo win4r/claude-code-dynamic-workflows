@@ -166,6 +166,10 @@ const CASES = {
     { name: 'commit', argsVal: { repo: '/tmp/repo', commit: 'abc1234' }, budgetTotal: null },
     { name: 'base', argsVal: { repo: '/tmp/repo', base: 'main' }, budgetTotal: null },
   ],
+  'codegraph-explore.js': [
+    { name: 'questions', argsVal: { repo: '/tmp/repo', questions: ['How does X work?', 'How does Y flow?'] }, budgetTotal: null },
+    { name: 'defaults', argsVal: {}, budgetTotal: null },
+  ],
 }
 
 ;(async () => {
