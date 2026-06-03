@@ -158,6 +158,10 @@ const CASES = {
     { name: 'with-brief', argsVal: 'design a token-bucket rate limiter for the public API', budgetTotal: null },
     { name: 'no-args(edge)', argsVal: '', budgetTotal: null },
   ],
+  'parallel-migrate.js': [
+    { name: 'with-brief', argsVal: 'migrate all call sites from requests to httpx', budgetTotal: null },
+    { name: 'no-args(edge)', argsVal: '', budgetTotal: null },
+  ],
 }
 
 ;(async () => {

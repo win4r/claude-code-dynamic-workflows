@@ -53,6 +53,7 @@ Invoke a saved workflow by asking Claude in plain language — **`run the <name>
 | [`exhaustive-audit`](#exhaustive-audit) | `run the exhaustive-audit workflow` | a path scope (optional) |
 | [`scaled-bug-hunt`](#scaled-bug-hunt) | `+500k run the scaled-bug-hunt workflow` | a focus area (optional) |
 | [`judge-panel-design`](#judge-panel-design) | `run the judge-panel-design workflow with "..."` | the design brief (**required**) |
+| [`parallel-migrate`](#parallel-migrate) | `run the parallel-migrate workflow with "..."` | the migration brief (**required**) |
 
 ### review-diff
 **Pattern: find → adversarially verify → synthesize.** Reviews the current diff across four dimensions (correctness, security, performance, tests) in parallel; every finding is then handed to an *independent* agent told to **refute** it, and only findings that survive are reported. Runs as a `pipeline` so each dimension's findings start verifying the moment that dimension finishes.
@@ -87,7 +88,38 @@ run the scaled-bug-hunt workflow                   # no budget -> 5 hunters x 2 
 run the judge-panel-design workflow with "design a token-bucket rate limiter for the public API"
 ```
 
+### parallel-migrate
+**Pattern: scout → parallel worktree-isolated migration.** A scout agent finds every file that needs changing for your migration brief; then one agent per file runs in its **own git worktree** (`isolation: 'worktree'`), edits the file, runs the tests that touch it, commits if green, and reports its branch. Concurrent edits can't collide, and you get back a list of ready-to-merge branches — **the workflow never touches your working tree.** Requires a git repository; see [Git worktrees](#git-worktrees) below.
+
+```
+run the parallel-migrate workflow with "migrate all call sites from `requests` to `httpx`"
+```
+
 Each file has a header comment documenting its `args` and **model strategy** — by default, finders/designers inherit your session model while high-volume verifiers/judges run on a smaller model to cut cost. Edit the `model:` options to taste (e.g. all `opus` for a high-stakes audit, all `haiku` for a cheap sweep).
+
+---
+
+## Git worktrees
+
+`parallel-migrate` (and any workflow that sets `isolation: 'worktree'` on an `agent()` call) runs each file-mutating subagent in its **own git worktree** — a separate checkout over the same `.git` — so concurrent edits never collide.
+
+**You don't set this up manually.** When a workflow requests `isolation: 'worktree'`, Claude Code's runtime creates a temporary worktree for that subagent and removes it automatically when the subagent finishes without changes. Just run the workflow inside a git repository. (See the official [worktrees docs](https://code.claude.com/docs/en/worktrees).)
+
+A few things worth knowing:
+
+- **One worktree per `agent()` call.** Edit *and* verify *and* commit must happen in the **same** call — a separate downstream agent would land in a different worktree and not see the edits. `parallel-migrate` follows this rule.
+- **Getting the work back.** Each subagent commits inside its worktree and reports its branch name. Because worktrees share the object store, those branches are visible in your main checkout afterward — review and merge the ones you want (`git merge <branch>`). The workflow never merges for you.
+- **Base branch.** Subagent worktrees branch from your repo's default branch (`origin/HEAD`). To branch from your current `HEAD` instead (carrying unpushed/in-progress work), set `"worktree": { "baseRef": "head" }` in settings.
+- **Gitignored files** like `.env` aren't in a fresh worktree. Add a `.worktreeinclude` (`.gitignore` syntax) listing the ones to copy in.
+- **Cleanup.** Subagent worktrees are swept after `cleanupPeriodDays` only if they're clean (no uncommitted/untracked/unpushed work) — so committing is what makes a subagent's work durable.
+
+To isolate a *whole interactive session* (not just subagents) — e.g. to stage an entire migration run off your main checkout — start Claude with the `--worktree` flag:
+
+```bash
+claude --worktree my-migration     # isolated session under .claude/worktrees/my-migration/
+```
+
+Run plain `claude` once in the repo first to accept the trust dialog, and add `.claude/worktrees/` to your `.gitignore`.
 
 ---
 
