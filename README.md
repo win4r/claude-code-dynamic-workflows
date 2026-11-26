@@ -1,5 +1,3 @@
-# [🚀观看我的哔哩哔哩视频](https://space.bilibili.com/3493277319825652)
-
 # claude-code-dynamic-workflows
 
 Four reusable **[dynamic workflow](https://code.claude.com/docs/en/workflows)** templates for [Claude Code](https://claude.com/claude-code) — drop them into `~/.claude/workflows/` and invoke them by name. Each one encodes a repeatable, multi-agent quality pattern (adversarial verification, loop-until-dry discovery, budget-scaled fan-out, judge-panel synthesis) so you get a more trustworthy result than a single pass.
